@@ -10,16 +10,8 @@ const rentItemSchema = new mongoose.Schema(
         price: { type: Number, required: true }, // Price per day
         description: { type: String, required: true },
         sellerid: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-        // Track rented users
-        rentedBy: [
-            {
-                userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-                quantity: { type: Number, required: true },
-                rentedAt: { type: Date, default: Date.now },
-                dueDate: { type: Date, required: true }, // Ensures due date is always set
-            }
-        ],
+        latitude: { type: Number },
+        longitude: { type: Number },
     },
     { timestamps: true }
 );

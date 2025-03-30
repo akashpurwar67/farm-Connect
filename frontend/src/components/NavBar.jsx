@@ -27,7 +27,6 @@ const NavBar = () => {
     authUser && { path: "/rentplace", label: "Rentplace", icon: ShoppingCart },
     authUser && { path: "/profile", label: "Profile", icon: User },
     authUser && { path: "/trade", label: "Trade", icon: ShoppingCart },
-    authUser && { path: "/chat", label: "Chat",icon: ShoppingCart},
     
   ].filter(Boolean);
 

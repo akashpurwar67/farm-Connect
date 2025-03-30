@@ -20,19 +20,6 @@ export const useItemStore = create((set) => ({
             set({ isLoading: false });
         }
     },
-
-    getListedMarketData: async (filters = {}) => {
-        set({ isLoading: true });
-        try {
-            const query = new URLSearchParams(filters).toString();
-            const res = await axiosInstance.get(`market/getlisteditem?${query}`);
-            set({ marketData: res.data });
-        } catch (error) {
-            toast.error(error.response?.data.message || "Failed to fetch data.");
-        } finally {
-            set({ isLoading: false });
-        }
-    },
     
     sendMarketData: async (data) => {
         set({ isSendingMarketData: true });

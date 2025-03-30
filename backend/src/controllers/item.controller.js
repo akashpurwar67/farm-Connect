@@ -49,31 +49,6 @@ export const sendMarketData = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
-
-// Get Seller's Listed Items
-export const sendListedMarketData = async (req, res) => {
-    try {
-        const userid = req.user._id;
-        const { city, category, minPrice, maxPrice } = req.query;
-        const query = { userid };
-        if (city) query.city = city;
-        if (category) query.category = category;
-
-        if (minPrice || maxPrice) {
-            query.price = {};
-            if (minPrice) query.price.$gte = parseFloat(minPrice);
-            if (maxPrice) query.price.$lte = parseFloat(maxPrice);
-        }
-        const items = await item.find(query);
-
-        res.status(200).json(items);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-};
-
-
 // Delete Item
 export const deleteMarketData = async (req, res) => {
     try {

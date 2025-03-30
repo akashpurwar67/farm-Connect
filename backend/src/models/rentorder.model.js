@@ -35,8 +35,8 @@ const rentOrderSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "accepted", "rejected", "cancelled", "completed","returned"],
-            default: "pending",
+            enum: ["Pending", "Accepted", "Rejected", "Cancelled","Returned"],
+            default: "Pending",
         },
     },
     { timestamps: true }

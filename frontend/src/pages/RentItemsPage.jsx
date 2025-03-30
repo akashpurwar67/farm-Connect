@@ -2,51 +2,52 @@ import { useEffect, useState, useCallback } from "react";
 import { useRentStore } from "../store/useRentStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { Loader2 } from "lucide-react";
+import { useRentOrderStore } from "../store/useRentOrderStore";
 
 const RentItemsPage = () => {
   const {
     getRentItems,
-    getListedRentItems,
-    rentItems,
+    allRentItems,
     isGettingRent,
     deleteRentData,
-    rentItem,
   } = useRentStore();
+  const {rentItem} = useRentOrderStore();
   const { authUser } = useAuthStore();
   
   const [rentQuantity, setRentQuantity] = useState({});
 
   // ✅ Use useCallback to prevent unnecessary re-renders
   const fetchRentItems = useCallback(() => {
-    if (authUser.usertype === "farmer") {
-      getListedRentItems();
-    } else {
       getRentItems();
-    }
-  }, [authUser.usertype, getListedRentItems, getRentItems]);
+  }, [authUser.usertype,getRentItems]);
 
   useEffect(() => {
     fetchRentItems();
   }, [fetchRentItems]);
 
   // ✅ Fixed handleRent function
-  const handleRent = async (itemId, itemPrice, sellerid) => {
-    const quantity = parseInt(rentQuantity[itemId]) || 1; // Ensure it's a valid number
+  const handleRent = async (itemId) => {
+    const quantity = parseInt(rentQuantity[itemId]) || 1;
 
     if (quantity < 1) {
       return alert("Please enter a valid quantity.");
     }
-
-    const orderData = { itemId, price: itemPrice, quantity, sellerid };
-    await rentItem(orderData); // ✅ Use correct function from the store
-    getRentItems(); // Refresh items after renting
+    
+    const orderData = { itemId, quantity};
+    await rentItem(orderData); // 
+    getRentItems(); 
+    setRentQuantity({ ...rentQuantity, [item._id]: null })
   };
 
   // ✅ Fixed handleOnDelete function
   const handleOnDelete = async (itemId) => {
     await deleteRentData(itemId);
-    getListedRentItems(); // Refresh listed items after deletion
+    getRentItems(); // Refresh listed items after deletion
   };
+  const displayedRentData =
+    authUser.usertype === "farmer"
+      ? allRentItems.filter((item) => item.sellerid === authUser._id)
+      : allRentItems;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-200 p-8">
@@ -60,10 +61,10 @@ const RentItemsPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {rentItems.length === 0 ? (
+          {allRentItems.length === 0 ? (
             <p className="col-span-full text-gray-600 text-center">No items available.</p>
           ) : (
-            rentItems.map((item) => (
+            displayedRentData.map((item) => (
               <div
                 key={item._id}
                 className="p-6 bg-white shadow-lg border border-gray-200 rounded-lg hover:shadow-2xl transform hover:scale-105 transition"
@@ -106,7 +107,7 @@ const RentItemsPage = () => {
                       />
                       <button
                         className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition"
-                        onClick={() => handleRent(item._id, item.price, item.sellerid)}
+                        onClick={() => handleRent(item._id)}
                       >
                         Rent Now
                       </button>

@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 
 export const useTradeStore = create((set) => ({
     trades: [],
-    matches: [],
     isGettingTrades: false,
     isPostingTrade: false,
     isGettingTradeMatch: false,
@@ -41,17 +40,13 @@ export const useTradeStore = create((set) => ({
             toast.error(err.response?.data?.message || "Something went wrong!");
         }
     },
-    
-    getTradeMatch: async (needs) => {
-        set({ isGettingTradeMatch: true, error: null });
+    deleteTrade: async (tradeid) => {
         try {
-            const tradeMatch = await axiosInstance.get(`trade/tradematch?needs=${encodeURIComponent(needs)}`);
-            set({ matches: tradeMatch.data });
+            await axiosInstance.delete(`trade/tradedelete?tradeid=${tradeid}`);
+            toast.success("Trade deleted successfully!");
         } catch (err) {
             toast.error(err.response?.data?.message || "Something went wrong!");
-        } finally {
-            set({ isGettingTradeMatch: false });
         }
-    },
+    }
 }));
     

@@ -1,78 +1,97 @@
 import rent from "../models/rentorder.model.js";
-import rentitem from "../models/rentitem.model.js";
+import Rentitem from "../models/rentitem.model.js";
 
-export const postRentOrder = async (req, res) => {
-    try {
-        const { itemid, price, sellerid, quantity } = req.body;
-        console.log(req.body);
-        const userid = req.user._id;
+export const rentItem = async (req, res) => {
+  const { itemId, quantity } = req.body;
+  const userId = req.user._id;
 
-        if (!itemid || !price || !sellerid || !quantity) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
+  try {
+    const item = await Rentitem.findById(itemId);
+    if (!item) return res.status(404).json({ message: "Item not found" });
 
-        // Fetch the item details by item ID
-        const itemData = await rentitem.findById(itemid);
-        if (!itemData) {
-            return res.status(404).json({ message: "Item not found" });
-        }
-        else if (itemData.quantity < quantity) {
-            return res.status(400).json({ message: "Not enough quantity available" });
-        }
-
-        // Create a new rent order
-        const newOrder = new rent({
-            itemid,
-            itemname: itemData.itemname,
-            userid,
-            quantity,
-            price,
-            sellerid,
-        });
-
-        const qquantity = itemData.quantity - quantity;
-        await rentitem.findByIdAndUpdate(itemid, { quantity:qquantity });
-
-        // Save the order
-        await newOrder.save();
-
-        res.status(201).json({
-            message: "Order placed successfully",
-            order: {
-                _id: newOrder._id,
-                itemid: newOrder.itemid,
-                userid: newOrder.userid,
-                itemname: newOrder.itemname,
-                quantity: newOrder.quantity,
-                price: newOrder.price,
-            },
-        });
-    } catch (error) {
-        console.error("Error in postRentOrder:", error);
-        res.status(500).json({ message: "Server Error" });
+    if (item.quantity < quantity) {
+      return res.status(400).json({ message: "Not enough stock available" });
     }
+
+    // Calculate due date (7 days from now)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7);
+
+    // Create rent order with pending status
+    const rentOrder = new rent({
+      itemid: itemId,
+      itemname: item.itemname,
+      userid: userId,
+      sellerid: item.sellerid,
+      quantity,
+      price: item.price * quantity,
+      dueDate,
+      status: "Pending"
+    });
+
+    await rentOrder.save();
+    res.status(200).json({ message: "Rent request submitted", dueDate });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error processing rental", error: error.message });
+  }
 };
 
+// 📌 GET Buyer Rent Orders
+export const getUserRentOrders = async (req, res) => {
+  try {
+    const orders = await rent.find();
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching rent orders", error: error.message });
+  }
+};
 
-export const getRentOrder = async (req, res) => {
-    const userid = req.user._id;
-    try {
-      const orders = await rent.find({ userid });
-      res.status(200).json(orders);
-    } catch (error) {
-      console.log("Error in getOrders: ", error.message);
-      res.status(500).json({ message: "Server Error" });
+// 📌 GET Farmer Rent Orders
+export const getFarmerRentOrders = async (req, res) => {
+  const sellerId = req.user._id;
+
+  try {
+    const orders = await rent.find({ sellerid: sellerId });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching rent orders", error: error.message });
+  }
+};
+
+// 📌 Update Rent Order Status
+export const updateRentOrder = async (req, res) => {
+  const { orderId, status } = req.body;
+
+  try {
+    const order = await rent.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    const item = await Rentitem.findById(order.itemid);
+    if(status === "Cancelled") {
+      if (order.status !== "Pending") {
+        return res.status(400).json({ message: "Cannot cancel a delivered order" });
+      }
     }
-  };
-  
-  
-  export const getSoldRentOrder = async (req, res) => {
-    const userid = req.user._id;
-    try {
-      const orders = await rent.find({ sellerid:userid });
-      res.status(200).json(orders);
-    } catch (error) {
-      console.log("Error in getOrders: ", error.message);
-      res.status(500).json({ message: "Server Error" });
+    if (status === "Accepted") {
+      
+      
+      if (item.quantity < order.quantity) {
+        return res.status(400).json({ message: "Not enough stock available" });
+      }
+      item.quantity -= order.quantity;
+      await item.save();
     }
-  };
+    if (status === "Returned") {
+      item.quantity += order.quantity;
+      await item.save();
+    }
+    order.status = status;
+    await order.save();
+    res.status(200).json({ message: "Order status updated", order });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating order status", error: error.message });
+  }
+};

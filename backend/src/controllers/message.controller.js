@@ -6,15 +6,31 @@ import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export const getUsersForSidebar = async (req, res) => {
     try {
-        const loggedInUserId = req.user._id;
-        const filteredUsers = await user.find({_id: {$ne: loggedInUserId}}).select('-password');
+        const loggedInUserId = req.user._id.toString();
+
+        // Fetch messages where the logged-in user is either sender or receiver
+        const messages = await Message.find({
+            $or: [{ senderId: loggedInUserId }, { receiverId: loggedInUserId }]
+        });
+
+        // Extract unique user IDs, excluding the logged-in user
+        const users = [...new Set(messages.map(message => 
+            message.senderId.toString() === loggedInUserId 
+                ? message.receiverId.toString() 
+                : message.senderId.toString()
+        ))].filter(userId => userId !== loggedInUserId);
+
+        // Fetch user details
+        const filteredUsers = await user.find({ _id: { $in: users } }).select("-password");
 
         res.status(200).json(filteredUsers);
     } catch (error) {
-        console.log('Error in getUsersForSidebar: ',error.message);
-        res.status(500).json({message: 'Server Error'});
+        console.error('Error in getUsersForSidebar:', error.message);
+        res.status(500).json({ message: 'Server Error' });
     }
 };
+
+
 
 
 export const getMessages = async (req, res) => {
@@ -26,6 +42,7 @@ export const getMessages = async (req, res) => {
                 {senderId: myId,receiverId: userToChatId},
                 {senderId: userToChatId,receiverId: myId}
             ]
+            
         });
 
         res.status(200).json(messages);

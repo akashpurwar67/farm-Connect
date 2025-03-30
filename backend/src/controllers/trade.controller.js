@@ -3,6 +3,8 @@ import User from "../models/user.model.js";
 export const getTrades = async (req, res) => {
     try {
         const trades = await Trade.find();
+    
+        
         res.status(200).json(trades);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -25,13 +27,14 @@ export const getUser = async (req, res) => {
 export const postTrade = async (req, res) => {
     try {
         const userid = req.user._id;
-        const {farmerName, offering, needs, location } = req.body;
+        const {farmerName, offering, needs,latitude,longitude } = req.body;
         const trade = new Trade({
             userid,
             farmerName,
             offering,
             needs,
-            location,
+            latitude,
+            longitude,
         });
         await trade.save();
         res.json({ message: "Trade posted successfully!" });
@@ -40,15 +43,12 @@ export const postTrade = async (req, res) => {
     }
 };
 
-
-export const getTradeMatch = async (req, res) => {  
+export const deleteTrade = async (req, res) => {
     try {
-        const { needs } = req.query; 
-
-        const trades = await Trade.find({ offering: { $regex: needs, $options: "i" } });
-        res.status(200).json(trades);
+        const { tradeid } = req.query;
+        await Trade.findByIdAndDelete(tradeid);
+        res.json({ message: "Trade deleted successfully!" });
     } catch (error) {
-        console.error("Error in getTradeMatch:", error.message);
         res.status(500).json({ error: error.message });
     }
-};
+}
